@@ -1,0 +1,5 @@
+rootProject.name = "GsonOptimize"
+include ':app'
+include ':GsonOptimize-annotation'
+include ':GsonOptimize-processor'
+include ':GsonOptimize-library'
