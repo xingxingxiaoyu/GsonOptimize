@@ -1,5 +1,6 @@
 package com.example.gsonoptimize.gson;
 
+import com.example.gsonoptimize.Person;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -13,11 +14,20 @@ import java.util.HashMap;
  * @author xujiafeng
  * @date 2021/10/31
  */
-class NoReflectTypeAdapterFactory implements TypeAdapterFactory {
+public class NoReflectTypeAdapterFactory implements TypeAdapterFactory {
 
-    private HashMap<TypeToken,NoReflectTypeAdapter> map=new HashMap<>();
+
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-        return map.get(type);
+        if (Person.class.equals(type.getType())) {
+            return new NoReflectPersonTypeAdapter<>(gson);
+        }
+        if (Person.Address.class.equals(type.getType())) {
+            return new NoReflectAddressTypeAdapter<>(gson);
+        }
+        if (Person.Phone.class.equals(type.getType())) {
+            return new NoReflectPhoneTypeAdapter<>(gson);
+        }
+        return null;
     }
 }
