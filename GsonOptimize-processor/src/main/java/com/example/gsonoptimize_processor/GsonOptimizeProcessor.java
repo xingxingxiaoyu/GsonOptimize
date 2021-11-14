@@ -4,6 +4,7 @@ import com.example.gsonoptimize_annotation.GsonOptimize;
 import com.google.auto.service.AutoService;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -25,9 +26,11 @@ import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -85,15 +88,67 @@ public class GsonOptimizeProcessor extends AbstractProcessor {
 
 
         }
+        generateTypeFactory();
         return true;
+    }
+
+    String tName = "T";
+    TypeVariableName tTypeName = TypeVariableName.get(tName);
+
+    private void generateTypeFactory() {
+        String packageName = "com.example.gsonoptimize_processor";
+        ClassName typeAdapterFactory = ClassName.get(packageName, "NoReflectTypeAdapterFactory");
+
+        TypeSpec.Builder typeAdapterBuilder = TypeSpec.classBuilder(typeAdapterFactory)
+                .addSuperinterface(ClassName.get(TypeAdapterFactory.class))
+                .addMethod(getCreateMethod())
+                .addModifiers(Modifier.PUBLIC);
+
+
+        JavaFile file = JavaFile.builder(packageName, typeAdapterBuilder.build()).build();
+
+        try {
+            file.writeTo(processingEnv.getFiler());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    HashMap<Symbol.ClassSymbol, String> mSymbolStringHashMap = new HashMap<>();
+
+    private MethodSpec getCreateMethod() {
+        ArrayList<ParameterSpec> parameterSpecs = new ArrayList<>();
+        parameterSpecs.add(ParameterSpec.builder(ParameterizedTypeName.get(Gson.class), "gson").build());
+        parameterSpecs.add(ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(TypeToken.class), tTypeName), "type").build());
+
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("create")
+                .addParameters(parameterSpecs);
+
+        for (Map.Entry<Symbol.ClassSymbol, String> entry : mSymbolStringHashMap.entrySet()) {
+//        if (Person.class.equals(type.getType())) {
+//            return new NoReflectPersonTypeAdapter<>(gson);
+//        }
+            builder.addCode("if ($T.class.equals(type.getType())) {\n", entry.getKey());
+            builder.addStatement("return new $N<>(gson)", entry.getValue());
+            builder.addCode("}\n");
+
+        }
+        builder.addStatement("return null");
+        return builder
+                .returns(ParameterizedTypeName.get(ClassName.get(TypeAdapter.class), tTypeName))
+                .addModifiers(Modifier.PUBLIC)
+                .addTypeVariable(tTypeName)
+                .build();
     }
 
     private void generateTypeAdapter(TypeElement typeElement) {
         String packageName = "com.example.gsonoptimize_processor";
-        ClassName typeAdapter = ClassName.get(packageName, "NoReflect" + typeElement.getSimpleName().toString() + "TypeAdapter");
+        String typeAdapterClassName = "NoReflect" + typeElement.getSimpleName().toString() + "TypeAdapter";
+        mSymbolStringHashMap.put((Symbol.ClassSymbol) typeElement, typeAdapterClassName);
+
+        ClassName typeAdapter = ClassName.get(packageName, typeAdapterClassName);
         ClassName baseTypeAdapter = ClassName.get(TypeAdapter.class);
-        String tName = "T";
-        TypeVariableName tTypeName = TypeVariableName.get(tName);
+
 
 //        public NoReflectPersonTypeAdapter(Gson gson) {
 //            this.gson = gson;
@@ -311,7 +366,7 @@ public class GsonOptimizeProcessor extends AbstractProcessor {
             Symbol.MethodSymbol methodSymbol = symbolList.mMethodSymbols.get(i);
             if ("<init>".equals(methodSymbol.name.toString())) {
                 for (int j = 0; j < methodSymbol.params.size(); j++) {
-                    String paramName= methodSymbol.params.get(j).name.toString().toLowerCase();
+                    String paramName = methodSymbol.params.get(j).name.toString().toLowerCase();
                     for (int k = 0; k < symbolList.mVarSymbols.size(); k++) {
                         Symbol.VarSymbol varSymbol = symbolList.mVarSymbols.get(k);
                         String varName = varSymbol.name.toString().toLowerCase();

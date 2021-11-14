@@ -1,5 +1,7 @@
 package com.example.gsonoptimize;
 
+import android.util.Log;
+
 import com.example.gsonoptimize_annotation.GsonOptimize;
 
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.List;
  */
 @GsonOptimize
 public class Person {
+    public static final String TAG = "Person";
     public String name;
     public int age;
     public double height;
@@ -23,6 +26,7 @@ public class Person {
         public String detail;
 
         public Address(String detail) {
+            Log.d(TAG, "Address: ");
             this.detail = detail;
         }
 
@@ -38,6 +42,7 @@ public class Person {
         public String number;
 
         public Phone(String number) {
+            Log.d(TAG, "Phone: ");
             this.number = number;
         }
 
@@ -56,6 +61,7 @@ public class Person {
         this.isMan = isMan;
         mAddress = address;
         mPhoneList = phoneList;
+        Log.d(TAG, "Person: ");
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.example.gsonoptimize;
 
 import android.util.Log;
 
-import com.example.gsonoptimize.gson.NoReflectTypeAdapterFactory;
+import com.example.gsonoptimize_processor.NoReflectTypeAdapterFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
