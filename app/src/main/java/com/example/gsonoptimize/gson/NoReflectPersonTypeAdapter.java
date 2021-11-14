@@ -29,7 +29,7 @@ class NoReflectPersonTypeAdapter<T> extends TypeAdapter<T> {
     }
 
     @Override
-    public void write(JsonWriter out, T value) throws IOException {
+    public void write(JsonWriter out, T value) {
 
     }
 
