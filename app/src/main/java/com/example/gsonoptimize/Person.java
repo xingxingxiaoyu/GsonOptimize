@@ -42,7 +42,7 @@ public class Person {
         public String number;
 
         public Phone(String number) {
-            Log.d(TAG, "Phone: ");
+//            Log.d(TAG, "Phone: ");
             this.number = number;
         }
 
