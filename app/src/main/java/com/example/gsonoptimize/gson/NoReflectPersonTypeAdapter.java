@@ -6,6 +6,7 @@ import com.example.gsonoptimize.Person;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
+import com.google.gson.internal.bind.ReflectiveTypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -29,8 +30,23 @@ class NoReflectPersonTypeAdapter<T> extends TypeAdapter<T> {
     }
 
     @Override
-    public void write(JsonWriter out, T value) {
+    public void write(JsonWriter out, T value) throws IOException {
+        if (value == null) {
+            out.nullValue();
+            return;
+        }
+        Person person = (Person) value;
 
+        out.beginObject();
+        out.name("name").value(person.name);
+        out.name("age").value(person.age);
+        out.name("height").value(person.height);
+        out.name("isMan").value(person.isMan);
+        gson.getAdapter(new TypeToken<Person.Address>() {
+        }).write(out, person.mAddress);
+        gson.getAdapter(new TypeToken<List<Person.Phone>>() {
+        }).write(out, person.mPhoneList);
+        out.endObject();
     }
 
 
