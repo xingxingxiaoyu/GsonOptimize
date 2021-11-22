@@ -33,7 +33,7 @@ import javax.lang.model.element.TypeElement;
  * TODO yuxu（徐郁） 补充说明
  */
 class TypeFactoryGenerator {
-    public static HashMap<Symbol.ClassSymbol, String> mSymbolStringHashMap = new HashMap<>();
+    public static HashMap<Symbol.ClassSymbol, String> mSymbolStringHashMap = TypeAdapterGenerator.mSymbolStringHashMap;
 
     private String tName = "T";
     private TypeVariableName tTypeName = TypeVariableName.get(tName);
