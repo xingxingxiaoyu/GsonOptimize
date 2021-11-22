@@ -26,9 +26,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 
 /**
- * author: yuxu
  * date: 2021/11/19
- * TODO yuxu（徐郁） 补充说明
  */
 class TypeAdapterGenerator {
     public static HashMap<Symbol.ClassSymbol, String> mSymbolStringHashMap = new HashMap<>();
