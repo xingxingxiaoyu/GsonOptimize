@@ -42,7 +42,6 @@ class TypeAdapterGenerator {
     }
 
     public void generateTypeAdapter() {
-        this.mProcessingEnvironment = mProcessingEnvironment;
         String packageName = "com.example.gsonoptimize_processor";
         String typeAdapterClassName = "NoReflect" + typeElement.getSimpleName().toString() + "TypeAdapter";
         mSymbolStringHashMap.put((Symbol.ClassSymbol) typeElement, typeAdapterClassName);
@@ -62,14 +61,7 @@ class TypeAdapterGenerator {
 //        public void write(JsonWriter out, T value) {
 //
 //        }
-        ArrayList<ParameterSpec> parameterSpecs = new ArrayList<>();
-        parameterSpecs.add(ParameterSpec.builder(ClassName.get(JsonWriter.class), "out").build());
-        parameterSpecs.add(ParameterSpec.builder(tTypeName, "value").build());
-        MethodSpec writeMethod = MethodSpec.methodBuilder("write")
-                .addAnnotation(Override.class)
-                .addParameters(parameterSpecs)
-                .addModifiers(Modifier.PUBLIC)
-                .build();
+        SymbolList symbolList = getVarSymbols(typeElement);
 
 
         TypeSpec.Builder typeAdapterBuilder = TypeSpec.classBuilder(typeAdapter)
@@ -77,8 +69,8 @@ class TypeAdapterGenerator {
                 .superclass(ParameterizedTypeName.get(baseTypeAdapter, tTypeName))
                 .addField(FieldSpec.builder(ClassName.get(Gson.class), "gson").addModifiers(Modifier.PRIVATE).build())
                 .addMethod(constructorMethod)
-                .addMethod(writeMethod)
-                .addMethod(readMethod(typeElement, tTypeName))
+                .addMethod(writeMethod(symbolList))
+                .addMethod(readMethod(symbolList, tTypeName))
                 .addModifiers(Modifier.PUBLIC);
 
 
@@ -91,7 +83,18 @@ class TypeAdapterGenerator {
         }
     }
 
-    private MethodSpec readMethod(TypeElement typeElement, TypeVariableName tTypeName) {
+    private MethodSpec writeMethod(SymbolList symbolList) {
+        ArrayList<ParameterSpec> parameterSpecs = new ArrayList<>();
+        parameterSpecs.add(ParameterSpec.builder(ClassName.get(JsonWriter.class), "out").build());
+        parameterSpecs.add(ParameterSpec.builder(tTypeName, "value").build());
+        return MethodSpec.methodBuilder("write")
+                .addAnnotation(Override.class)
+                .addParameters(parameterSpecs)
+                .addModifiers(Modifier.PUBLIC)
+                .build();
+    }
+
+    private MethodSpec readMethod(SymbolList symbolList, TypeVariableName tTypeName) {
 //        @Override
 //        public T read(JsonReader in) throws IOException {
 //            in.beginObject();
@@ -135,7 +138,6 @@ class TypeAdapterGenerator {
                 .addParameter(ParameterSpec.builder(ParameterizedTypeName.get(JsonReader.class), "in").build())
                 .addStatement("in.beginObject()");
 
-        SymbolList symbolList = getVarSymbols(typeElement);
         for (int i = 0; i < symbolList.mClassSymbols.size(); i++) {
             new TypeAdapterGenerator(mProcessingEnvironment, (Symbol.ClassSymbol) symbolList.mClassSymbols.get(i)).generateTypeAdapter();
         }

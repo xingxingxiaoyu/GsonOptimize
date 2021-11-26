@@ -42,8 +42,10 @@ class NoReflectPersonTypeAdapter<T> extends TypeAdapter<T> {
         out.name("age").value(person.age);
         out.name("height").value(person.height);
         out.name("isMan").value(person.isMan);
+        out.name("mAddress");
         gson.getAdapter(new TypeToken<Person.Address>() {
         }).write(out, person.mAddress);
+        out.name("mPhoneList");
         gson.getAdapter(new TypeToken<List<Person.Phone>>() {
         }).write(out, person.mPhoneList);
         out.endObject();
