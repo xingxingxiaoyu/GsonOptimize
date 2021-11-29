@@ -6,20 +6,24 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
@@ -57,10 +61,7 @@ class TypeAdapterGenerator {
                 .addParameter(ParameterSpec.builder(ClassName.get(Gson.class), "gson").build())
                 .addStatement("this.gson = gson").build();
 
-//        @Override
-//        public void write(JsonWriter out, T value) {
-//
-//        }
+
         SymbolList symbolList = getVarSymbols(typeElement);
 
 
@@ -69,7 +70,7 @@ class TypeAdapterGenerator {
                 .superclass(ParameterizedTypeName.get(baseTypeAdapter, tTypeName))
                 .addField(FieldSpec.builder(ClassName.get(Gson.class), "gson").addModifiers(Modifier.PRIVATE).build())
                 .addMethod(constructorMethod)
-                .addMethod(writeMethod(symbolList))
+                .addMethod(writeMethod(symbolList, tTypeName))
                 .addMethod(readMethod(symbolList, tTypeName))
                 .addModifiers(Modifier.PUBLIC);
 
@@ -83,14 +84,59 @@ class TypeAdapterGenerator {
         }
     }
 
-    private MethodSpec writeMethod(SymbolList symbolList) {
+    private MethodSpec writeMethod(SymbolList symbolList, TypeVariableName tTypeName) {
+//    @Override
+//    public void write(JsonWriter out, T value) throws IOException {
+//        if (value == null) {
+//            out.nullValue();
+//            return;
+//        }
+//        Person person = (Person) value;
+//        out.beginObject();
+//        out.name("name").value(person.name);
+//        out.name("age").value(person.age);
+//        out.name("height").value(person.height);
+//        out.name("isMan").value(person.isMan);
+//        out.name("mAddress");
+//        gson.getAdapter(new TypeToken<Person.Address>() {
+//        }).write(out, person.mAddress);
+//        out.name("mPhoneList");
+//        gson.getAdapter(new TypeToken<List<Person.Phone>>() {
+//        }).write(out, person.mPhoneList);
+//        out.endObject();
+//    }
         ArrayList<ParameterSpec> parameterSpecs = new ArrayList<>();
         parameterSpecs.add(ParameterSpec.builder(ClassName.get(JsonWriter.class), "out").build());
-        parameterSpecs.add(ParameterSpec.builder(tTypeName, "value").build());
-        return MethodSpec.methodBuilder("write")
+        parameterSpecs.add(ParameterSpec.builder(this.tTypeName, "value").build());
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("write")
                 .addAnnotation(Override.class)
                 .addParameters(parameterSpecs)
+                .addCode("if (value == null) {$>\n")
+                .addStatement("out.nullValue()")
+                .addStatement("return")
+                .addCode("$<}\n");
+        TypeName currentBeanTypeName = ClassName.get(symbolList.classSymbol.type);
+        builder.addStatement("$T $N = ($T) value;", currentBeanTypeName,
+                symbolList.classSymbol.name.toString().toLowerCase(), currentBeanTypeName);
+        builder.addStatement("out.beginObject()");
+
+        for (int i = 0; i < symbolList.mVarSymbols.size(); i++) {
+            Symbol.VarSymbol varSymbol = (Symbol.VarSymbol) symbolList.mVarSymbols.get(i);
+            Type type = varSymbol.type;
+            if (type.isPrimitive()
+                    || "java.lang.String".equals(varSymbol.type.tsym.flatName().toString())) {
+                builder.addStatement("out.name($S).value($N.$N)", varSymbol.name, symbolList.classSymbol.name.toString().toLowerCase(), varSymbol.name);
+            } else {
+                builder.addStatement("out.name($S)", varSymbol.name);
+                builder.addStatement("gson.getAdapter(new $T<$T>() {\n" +
+                        "}).write(out, $N.$N)", ClassName.get(TypeToken.class), ClassName.get(varSymbol.type), symbolList.classSymbol.name.toString().toLowerCase(), varSymbol.name);
+            }
+        }
+        builder.addStatement("out.endObject()");
+
+        return builder
                 .addModifiers(Modifier.PUBLIC)
+                .addException(ClassName.get(IOException.class))
                 .build();
     }
 
@@ -142,7 +188,6 @@ class TypeAdapterGenerator {
             new TypeAdapterGenerator(mProcessingEnvironment, (Symbol.ClassSymbol) symbolList.mClassSymbols.get(i)).generateTypeAdapter();
         }
         for (int i = 0; i < symbolList.mVarSymbols.size(); i++) {
-
             Symbol.VarSymbol varSymbol = (Symbol.VarSymbol) symbolList.mVarSymbols.get(i);
             if ("int".equals(varSymbol.type.tsym.name.toString())) {
                 builder.addStatement("$T " + varSymbol.name + " = 0", ClassName.get(varSymbol.type));
@@ -286,9 +331,7 @@ class TypeAdapterGenerator {
             }
         }
 
-
-        Symbol.ClassSymbol classSymbol = (Symbol.ClassSymbol) typeElement;
-        builder.addStatement(stringBuilder.substring(0, stringBuilder.length() - 2) + ")", ClassName.get(classSymbol.type));
+        builder.addStatement(stringBuilder.substring(0, stringBuilder.length() - 2) + ")", ClassName.get(symbolList.classSymbol.type));
 
         return builder
                 .addModifiers(Modifier.PUBLIC)
@@ -299,7 +342,7 @@ class TypeAdapterGenerator {
 
     private SymbolList getVarSymbols(TypeElement typeElement) {
         SymbolList result = new SymbolList();
-        Symbol.ClassSymbol classSymbol = (Symbol.ClassSymbol) typeElement;
+        result.classSymbol = (Symbol.ClassSymbol) typeElement;
         try {
             Class<?> scopeImplClass = Class.forName(Scope.class.getName() + "$ScopeImpl");
             Field tableField = scopeImplClass.getDeclaredField("table");
@@ -309,7 +352,7 @@ class TypeAdapterGenerator {
             symField.setAccessible(true);
 
 
-            Object[] table = (Object[]) tableField.get(classSymbol.members_field);
+            Object[] table = (Object[]) tableField.get(result.classSymbol.members_field);
             for (int i = 0; i < table.length; i++) {
                 Object entry = table[i];
                 if (entry == null) {
@@ -317,7 +360,9 @@ class TypeAdapterGenerator {
                 }
                 Object o = symField.get(entry);
                 if (o instanceof Symbol.VarSymbol) {
-                    result.mVarSymbols.add((Symbol.VarSymbol) o);
+                    Symbol.VarSymbol varSymbol = (Symbol.VarSymbol) o;
+                    if (!varSymbol.isStatic())
+                        result.mVarSymbols.add(varSymbol);
                 }
                 if (o instanceof Symbol.ClassSymbol) {
                     result.mClassSymbols.add((Symbol.ClassSymbol) o);
@@ -332,7 +377,8 @@ class TypeAdapterGenerator {
         return result;
     }
 
-    class SymbolList {
+    static class SymbolList {
+        Symbol.ClassSymbol classSymbol;
         ArrayList<Symbol.VarSymbol> mVarSymbols = new ArrayList<>();
         ArrayList<Symbol.ClassSymbol> mClassSymbols = new ArrayList<>();
         ArrayList<Symbol.MethodSymbol> mMethodSymbols = new ArrayList<>();

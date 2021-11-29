@@ -2,8 +2,8 @@ package com.example.gsonoptimize;
 
 import android.util.Log;
 
-//import com.example.gsonoptimize_processor.NoReflectTypeAdapterFactory;
-import com.example.gsonoptimize.gson.NoReflectTypeAdapterFactory;
+import com.example.gsonoptimize_processor.NoReflectTypeAdapterFactory;
+//import com.example.gsonoptimize.gson.NoReflectTypeAdapterFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -33,7 +33,7 @@ class Test {
 
     public static void testTime() {
         ArrayList<Person.Phone> phoneList = new ArrayList<>();
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 500000; i++) {
             phoneList.add(new Person.Phone("1234"));
             phoneList.add(new Person.Phone("5678"));
         }
