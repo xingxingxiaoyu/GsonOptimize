@@ -36,7 +36,6 @@ class NoReflectPersonTypeAdapter<T> extends TypeAdapter<T> {
             return;
         }
         Person person = (Person) value;
-
         out.beginObject();
         out.name("name").value(person.name);
         out.name("age").value(person.age);

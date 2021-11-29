@@ -29,7 +29,14 @@ class NoReflectAddressTypeAdapter<T> extends TypeAdapter<T> {
 
     @Override
     public void write(JsonWriter out, T value) throws IOException {
-
+        if (value == null) {
+            out.nullValue();
+            return;
+        }
+        Person.Address address = (Person.Address) value;
+        out.beginObject();
+        out.name("detail").value(address.detail);
+        out.endObject();
     }
 
     @Override

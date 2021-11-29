@@ -6,6 +6,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 
 /**
@@ -17,17 +18,22 @@ import java.util.HashMap;
 public class NoReflectTypeAdapterFactory implements TypeAdapterFactory {
 
 
+    private HashMap<Type, TypeAdapter> map;
+
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-        if (Person.class.equals(type.getType())) {
-            return new NoReflectPersonTypeAdapter<>(gson);
+        if (map == null) {
+            initMap(gson);
         }
-        if (Person.Address.class.equals(type.getType())) {
-            return new NoReflectAddressTypeAdapter<>(gson);
+        return map.get(type.getType());
+    }
+
+    private synchronized void initMap(Gson gson) {
+        if (map == null) {
+            map = new HashMap<>();
+            map.put(Person.class, new NoReflectPersonTypeAdapter<>(gson));
+            map.put(Person.Address.class, new NoReflectAddressTypeAdapter<>(gson));
+            map.put(Person.Phone.class, new NoReflectPhoneTypeAdapter<>(gson));
         }
-        if (Person.Phone.class.equals(type.getType())) {
-            return new NoReflectPhoneTypeAdapter<>(gson);
-        }
-        return null;
     }
 }

@@ -26,7 +26,14 @@ class NoReflectPhoneTypeAdapter<T> extends TypeAdapter<T> {
 
     @Override
     public void write(JsonWriter out, T value) throws IOException {
-
+        if (value == null) {
+            out.nullValue();
+            return;
+        }
+        Person.Phone phone = (Person.Phone) value;
+        out.beginObject();
+        out.name("number").value(phone.number);
+        out.endObject();
     }
 
     @Override
